@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Угадай кто я: Исторические личности</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f5f5dc;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #8b4513;
+            font-family: 'Times New Roman', serif;
+        }
+        .game-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fffaf0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(139, 69, 19, 0.2);
+            border: 2px solid #d2b48c;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .board {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        .character {
+            border: 2px solid #8b4513;
+            border-radius: 5px;
+            padding: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            background-color: #fff8dc;
+        }
+        .character img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 3px;
+        }
+        .character.flipped {
+            opacity: 0.4;
+        }
+        .character.selected {
+            border-color: #b22222;
+            box-shadow: 0 0 5px #b22222;
+        }
+        .character-name {
+            margin-top: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .character-period {
+            font-size: 10px;
+            font-style: italic;
+            color: #8b4513;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .questions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 768px) {
+            .questions {
+                grid-template-columns: 1fr;
+            }
+        }
+        button {
+            padding: 10px;
+            background-color: #8b4513;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background-color: #a0522d;
+        }
+        button:disabled {
+            background-color: #d2b48c;
+            cursor: not-allowed;
+        }
+        #start-game, #restart-btn {
+            background-color: #006400;
+        }
+        #start-game:hover, #restart-btn:hover {
+            background-color: #008000;
+        }
+        #guess-btn {
+            background-color: #b22222;
+        }
+        #guess-btn:hover {
+            background-color: #dc143c;
+        }
+        .message {
+            padding: 15px;
+            background-color: #d2b48c;
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: #8b4513;
+            border: 1px solid #8b4513;
+        }
+        .hidden {
+            display: none;
+        }
+        .computer-thinking {
+            margin-top: 10px;
+            font-style: italic;
+            color: #8b4513;
+            text-align: center;
+        }
+        .rules {
+            background-color: #fff8dc;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #d2b48c;
+            margin-bottom: 20px;
+        }
+        .rules h3 {
+            margin-top: 0;
+            color: #8b4513;
+        }
+        .rules ul {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Угадай кто я: Исторические личности</h1>
+
+        <div id="start-screen">
+            <div class="rules">
+                <h3>Правила игры:</h3>
+                <ul>
+                    <li>Компьютер загадывает историческую личность</li>
+                    <li>Задавайте вопросы, чтобы определить, кого загадал компьютер</li>
+                    <li>После каждого вопроса персонажи, не соответствующие ответу, будут затемнены</li>
+                    <li>Когда будете готовы сделать предположение, выберите персонажа и нажмите "Угадать"</li>
+                </ul>
+            </div>
+            <button id="start-game">Начать игру</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div id="message" class="message hidden"></div>
+            
+            <div class="board" id="board"></div>
+            
+            <div class="controls">
+                <h3>Задайте вопрос:</h3>
+                <div class="questions">
+                    <button class="question-btn" data-feature="male">Это мужчина?</button>
+                    <button class="question-btn" data-feature="female">Это женщина?</button>
+                    <button class="question-btn" data-feature="scientist">Это ученый?</button>
+                    <button class="question-btn" data-feature="politician">Это политический деятель?</button>
+                    <button class="question-btn" data-feature="artist">Это деятель искусства?</button>
+                    <button class="question-btn" data-feature="military">Это военный деятель?</button>
+                    <button class="question-btn" data-feature="ancient">Жил в древние времена (до 500 н.э.)?</button>
+                    <button class="question-btn" data-feature="medieval">Жил в средние века (500-1500)?</button>
+                    <button class="question-btn" data-feature="modern">Жил в новое время (1500-1900)?</button>
+                    <button class="question-btn" data-feature="contemporary">Жил в новейшее время (после 1900)?</button>
+                    <button class="question-btn" data-feature="european">Из Европы?</button>
+                    <button class="question-btn" data-feature="asian">Из Азии?</button>
+                    <button class="question-btn" data-feature="american">Из Америки?</button>
+                    <button class="question-btn" data-feature="african">Из Африки?</button>
+                </div>
+                
+                <div id="computer-thinking" class="computer-thinking hidden">
+                    Компьютер думает...
+                </div>
+                
+                <h3>Или угадайте персонажа:</h3>
+                <button id="guess-btn" disabled>Угадать выбранного персонажа</button>
+                
+                <button id="restart-btn" class="hidden">Начать заново</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Исторические личности
+        const characters = [
+            { id: 1, name: "Александр Македонский", period: "356-323 до н.э.", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: true, artist: false, military: true, ancient: true, medieval: false, modern: false, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 2, name: "Клеопатра", period: "69-30 до н.э.", image: "/api/placeholder/120/150", male: false, female: true, scientist: false, politician: true, artist: false, military: false, ancient: true, medieval: false, modern: false, contemporary: false, european: false, asian: false, american: false, african: true },
+            { id: 3, name: "Леонардо да Винчи", period: "1452-1519", image: "/api/placeholder/120/150", male: true, female: false, scientist: true, politician: false, artist: true, military: false, ancient: false, medieval: false, modern: true, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 4, name: "Жанна д'Арк", period: "1412-1431", image: "/api/placeholder/120/150", male: false, female: true, scientist: false, politician: false, artist: false, military: true, ancient: false, medieval: true, modern: false, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 5, name: "Наполеон Бонапарт", period: "1769-1821", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: true, artist: false, military: true, ancient: false, medieval: false, modern: true, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 6, name: "Екатерина II", period: "1729-1796", image: "/api/placeholder/120/150", male: false, female: true, scientist: false, politician: true, artist: false, military: false, ancient: false, medieval: false, modern: true, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 7, name: "Альберт Эйнштейн", period: "1879-1955", image: "/api/placeholder/120/150", male: true, female: false, scientist: true, politician: false, artist: false, military: false, ancient: false, medieval: false, modern: false, contemporary: true, european: true, asian: false, american: false, african: false },
+            { id: 8, name: "Мария Кюри", period: "1867-1934", image: "/api/placeholder/120/150", male: false, female: true, scientist: true, politician: false, artist: false, military: false, ancient: false, medieval: false, modern: false, contemporary: true, european: true, asian: false, american: false, african: false },
+            { id: 9, name: "Авраам Линкольн", period: "1809-1865", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: true, artist: false, military: false, ancient: false, medieval: false, modern: true, contemporary: false, european: false, asian: false, american: true, african: false },
+            { id: 10, name: "Фрида Кало", period: "1907-1954", image: "/api/placeholder/120/150", male: false, female: true, scientist: false, politician: false, artist: true, military: false, ancient: false, medieval: false, modern: false, contemporary: true, european: false, asian: false, american: true, african: false },
+            { id: 11, name: "Чингисхан", period: "1162-1227", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: true, artist: false, military: true, ancient: false, medieval: true, modern: false, contemporary: false, european: false, asian: true, american: false, african: false },
+            { id: 12, name: "Флоренс Найтингейл", period: "1820-1910", image: "/api/placeholder/120/150", male: false, female: true, scientist: true, politician: false, artist: false, military: false, ancient: false, medieval: false, modern: true, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 13, name: "Вильгельм Конрад Рентген", period: "1845-1923", image: "/api/placeholder/120/150", male: true, female: false, scientist: true, politician: false, artist: false, military: false, ancient: false, medieval: false, modern: true, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 14, name: "Мария Антуанетта", period: "1755-1793", image: "/api/placeholder/120/150", male: false, female: true, scientist: false, politician: true, artist: false, military: false, ancient: false, medieval: false, modern: true, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 15, name: "Махатма Ганди", period: "1869-1948", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: true, artist: false, military: false, ancient: false, medieval: false, modern: false, contemporary: true, european: false, asian: true, american: false, african: false },
+            { id: 16, name: "Нефертити", period: "1370-1330 до н.э.", image: "/api/placeholder/120/150", male: false, female: true, scientist: false, politician: true, artist: false, military: false, ancient: true, medieval: false, modern: false, contemporary: false, european: false, asian: false, american: false, african: true },
+            { id: 17, name: "Пифагор", period: "570-495 до н.э.", image: "/api/placeholder/120/150", male: true, female: false, scientist: true, politician: false, artist: false, military: false, ancient: true, medieval: false, modern: false, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 18, name: "Симон Боливар", period: "1783-1830", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: true, artist: false, military: true, ancient: false, medieval: false, modern: true, contemporary: false, european: false, asian: false, american: true, african: false },
+            { id: 19, name: "Королева Виктория", period: "1819-1901", image: "/api/placeholder/120/150", male: false, female: true, scientist: false, politician: true, artist: false, military: false, ancient: false, medieval: false, modern: true, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 20, name: "Конфуций", period: "551-479 до н.э.", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: false, artist: false, military: false, ancient: true, medieval: false, modern: false, contemporary: false, european: false, asian: true, american: false, african: false },
+            { id: 21, name: "Мать Тереза", period: "1910-1997", image: "/api/placeholder/120/150", male: false, female: true, scientist: false, politician: false, artist: false, military: false, ancient: false, medieval: false, modern: false, contemporary: true, european: true, asian: false, american: false, african: false },
+            { id: 22, name: "Николай Коперник", period: "1473-1543", image: "/api/placeholder/120/150", male: true, female: false, scientist: true, politician: false, artist: false, military: false, ancient: false, medieval: false, modern: true, contemporary: false, european: true, asian: false, american: false, african: false },
+            { id: 23, name: "Мао Цзэдун", period: "1893-1976", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: true, artist: false, military: true, ancient: false, medieval: false, modern: false, contemporary: true, european: false, asian: true, american: false, african: false },
+            { id: 24, name: "Туттанхамон", period: "1342-1325 до н.э.", image: "/api/placeholder/120/150", male: true, female: false, scientist: false, politician: true, artist: false, military: false, ancient: true, medieval: false, modern: false, contemporary: false, european: false, asian: false, american: false, african: true }
+        ];
+
+        let selectedCharacter = null;
+        let computerCharacter = null;
+        let remainingCharacters = [...characters];
+
+        document.getElementById('start-game').addEventListener('click', initGame);
+        document.getElementById('guess-btn').addEventListener('click', makeGuess);
+        document.getElementById('restart-btn').addEventListener('click', initGame);
+
+        // Инициализация игры
+        function initGame() {
+            // Сбросить состояние
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('message').classList.add('hidden');
+            document.getElementById('restart-btn').classList.add('hidden');
+            document.getElementById('guess-btn').disabled = true;
+            
+            selectedCharacter = null;
+            computerCharacter = characters[Math.floor(Math.random() * characters.length)];
+            remainingCharacters = [...characters];
+            
+            // Создаем доску
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            
+            characters.forEach(character => {
+                const charElement = document.createElement('div');
+                charElement.className = 'character';
+                charElement.dataset.id = character.id;
+                
+                charElement.innerHTML = `
+                    <img src="${character.image}" alt="${character.name}">
+                    <div class="character-name">${character.name}</div>
+                    <div class="character-period">${character.period}</div>
+                `;
+                
+                charElement.addEventListener('click', () => selectCharacter(character));
+                
+                board.appendChild(charElement);
+            });
+            
+            // Активируем кнопки вопросов
+            document.querySelectorAll('.question-btn').forEach(btn => {
+                btn.disabled = false;
+                btn.addEventListener('click', askQuestion);
+            });
+        }
+        
+        // Выбор персонажа
+        function selectCharacter(character) {
+            if (selectedCharacter === character) {
+                selectedCharacter = null;
+                document.getElementById('guess-btn').disabled = true;
+                document.querySelectorAll('.character').forEach(el => el.classList.remove('selected'));
+                return;
+            }
+            
+            selectedCharacter = character;
+            document.getElementById('guess-btn').disabled = false;
+            
+            document.querySelectorAll('.character').forEach(el => {
+                if (parseInt(el.dataset.id) === character.id) {
+                    el.classList.add('selected');
+                } else {
+                    el.classList.remove('selected');
+                }
+            });
+        }
+        
+        // Задать вопрос
+        function askQuestion(event) {
+            const feature = event.target.dataset.feature;
+            const answer = computerCharacter[feature];
+            
+            // Отображаем ответ
+            const message = document.getElementById('message');
+            message.textContent = answer ? 'Да!' : 'Нет!';
+            message.classList.remove('hidden');
+            
+            // Убираем персонажей, которые не соответствуют ответу
+            remainingCharacters = remainingCharacters.filter(char => char[feature] === answer);
+            
+            // Отмечаем персонажей на доске
+            document.querySelectorAll('.character').forEach(el => {
+                const charId = parseInt(el.dataset.id);
+                const stillInGame = remainingCharacters.some(c => c.id === charId);
+                
+                if (!stillInGame) {
+                    el.classList.add('flipped');
+                }
+            });
+            
+            // Проверяем, остался ли только один персонаж
+            if (remainingCharacters.length === 1) {
+                setTimeout(() => {
+                    computerWins();
+                }, 1000);
+                return;
+            }
+            
+            // Ход компьютера
+            setTimeout(() => {
+                computerTurn();
+            }, 1500);
+        }
+        
+        // Ход компьютера (простая стратегия)
+        function computerTurn() {
+            const thinking = document.getElementById('computer-thinking');
+            thinking.classList.remove('hidden');
+            
+            setTimeout(() => {
+                thinking.classList.add('hidden');
+                
+                const message = document.getElementById('message');
+                message.textContent = "Компьютер подумал над своим следующим ходом.";
+                
+                // В реальной игре здесь была бы более сложная логика для выбора вопроса
+                // Сейчас мы просто симулируем, что компьютер стал ближе к ответу
+                
+                if (Math.random() < 0.2) { // 20% шанс, что компьютер угадает
+                    playerWins();
+                }
+            }, 2000);
+        }
+        
+        // Игрок делает предположение
+        function makeGuess() {
+            if (!selectedCharacter) return;
+            
+            if (selectedCharacter.id === computerCharacter.id) {
+                const message = document.getElementById('message');
+                message.textContent = `Поздравляем! Вы угадали! Это действительно ${computerCharacter.name}!`;
+                message.classList.remove('hidden');
+                
+                endGame();
+            } else {
+                const message = document.getElementById('message');
+                message.textContent = `Нет, это не ${selectedCharacter.name}. Компьютер загадал ${computerCharacter.name}!`;
+                message.classList.remove('hidden');
+                
+                endGame();
+            }
+        }
+        
+        // Компьютер угадал
+        function computerWins() {
+            const message = document.getElementById('message');
+            message.textContent = `Компьютер вычислил, что это ${computerCharacter.name}!`;
+            message.classList.remove('hidden');
+            
+            endGame();
+        }
+        
+        // Игрок выиграл (компьютер сдался)
+        function playerWins() {
+            const message = document.getElementById('message');
+            message.textContent = `Компьютер не смог угадать! Вы победили!`;
+            message.classList.remove('hidden');
+            
+            endGame();
+        }
+        
+        // Завершение игры
+        function endGame() {
+            document.querySelectorAll('.question-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+            
+            document.getElementById('guess-btn').disabled = true;
+            document.getElementById('restart-btn').classList.remove('hidden');
+            
+            // Показываем, какой персонаж был загадан
+            document.querySelectorAll('.character').forEach(el => {
+                const charId = parseInt(el.dataset.id);
+                
+                if (charId === computerCharacter.id) {
+                    el.classList.add('selected');
+                } else {
+                    el.classList.remove('selected');
+                    el.classList.add('flipped');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
